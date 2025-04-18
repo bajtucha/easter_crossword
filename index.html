@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wielkanocna łamigłówka</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Rubik', sans-serif;
+      padding: 40px;
+      background: linear-gradient(to right, #f9f9f9, #e0e0e0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 30px;
+      color: #333;
+    }
+    .poetic {
+  font-family: 'Dancing Script', cursive;
+  font-size: 40px;
+  line-height: 1.4;
+  color: #444;
+}
+    #score-container {
+  display: flex;
+  gap: 0px;
+  margin-bottom: 20px;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 900px;
+  align-self: center;
+  font-size: 0; 
+}
+
+    #score-container img {
+      width: 152px;
+      height: auto;
+      margin: 0;
+      padding: 0;
+      display: block; /* ← zapobiega domyślnym odstępom inline-img */
+    }
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 900px;
+      min-height: 300px;
+      width: 100%;
+    }
+    #mascot-container {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    #mascot-container img {
+      width: 180px;
+      height: auto;
+      flex-shrink: 0;
+    }
+    #speech-bubble {
+      position: relative;
+      background: white;
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-left: 20px;
+      min-height: 80px;
+      max-width: 300px;
+      display: inline-block;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+      font-size: 18px;
+      white-space: normal;
+      width: auto;
+    }
+    #speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: -20px;
+      border: 10px solid transparent;
+      border-right-color: white;
+    }
+    #speech-bubble::before {
+      content: '';
+      position: absolute;
+      top: 19px;
+      left: -22px;
+      border: 11px solid transparent;
+      border-right-color: #ccc;
+    }
+    #next-button {
+      margin-top: 10px;
+      background-color: #008CBA;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+    }
+    #next-button:hover {
+      background-color: #0077a6;
+    }
+    #input-container {
+      display: none;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .letter-input {
+      width: 50px;
+      height: 50px;
+      text-align: center;
+      font-size: 28px;
+      text-transform: uppercase;
+      margin: 4px;
+      border-radius: 8px;
+      border: 2px solid #aaa;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 18px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+    }
+    .disabled-input {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.egg-earned {
+  animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+  </style>
+</head>
+<body>
+    <h1>Wielkanocna łamigłówka</h1>
+    <div id="score-container"></div>
+    <div id="game-container" style="max-width: 900px; width: 100%;">
+        
+        <div id="mascot-container">
+          <img id="mascot-img" src="kamala_angry.png" alt="Małpa">
+          <div id="speech-bubble"></div>
+        </div>
+    <button id="next-button" onclick="handleNextButton()">Dalej</button>
+    <div id="input-container"></div>
+    <div id="message"></div>
+    <button id="check-button" onclick="submitAnswer()">Sprawdź</button>
+  </div>
+
+
+
+  <script>
+    let score = 0;
+    let collectedEggs = []; // 🥚 ← tu będziemy trzymać nazwy zdobytych jajek
+    let currentStep = 15;
+    let isAnswering = false;
+    let dialogIndex = 0;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const rounds = [
+      {
+        mascot: 'kamala_disgusted.png',
+        dialog: [
+          { text: "No dobra. Po pierwsze, wcale nie chciałam tu być!" },
+          { text: "Po drugie, to wyjątkowo durna zabawa." },
+          { text: "Po trzecie, nie wiem czemu akurat to mnie przypadło wyjaśnić ci zasady?", img: "kamala_angry.png" },
+          { text: "No, ale dobra, niech będzie. Skup się, bo nie będę powtarzać." },
+          { text: "Ja i kolejni prezenterzy - już nie tak fajni jak ja - będziemy ci zadawać pytania." },
+          { text: "Jak odpowiesz na wszystkie - dostajesz jajko." },
+          { text: "Nie wiem czemu nie banana, nie ja wymyślałam tą durną grę.", img: "kamala_mad.png" },
+          { text: "Dobra, zaczynamy!" }
+          
+        ],
+        question: {
+          text: "Jakie owoce warto sadzić w mieście?",
+          answer: "BANANY",
+          imageCorrect: "kamala_disgusted.png",
+          imageWrong: "kamala_facepalm.png",
+          imageAsk: "kamala_disgusted.png",
+          scorePoint: false,
+          correctReaction: { text: "No, to chyba oczywiste!", img: "kamala_disgusted.png" },
+          wrongReaction: { text: "Jesteś kretynem!", img: "kamala_facepalm.png" }
+        }
+      },
+      {
+        mascot: 'kamala_disgusted.png',
+        dialog: [
+          { text: "Idziemy dalej." },
+          { text: "Jak odpowiesz na wszystkie moje pytania, powiem ci gdzie szukać pierwszego jajka." },
+          { text: "No i wreszcie będę mogła sobie pójść, a pałeczkę przejmie kto inny." },
+          { text: "Zebrane jajka zaświecą ci się w punktacji." },
+          { text: "Jak to gdzie?! Tu nade mną pacanie! Widzisz tu jakieś inne jajka?", img: "kamala_mad.png" },
+          { text: "Każde przedstawia jakiś żywioł. Ze mną walczysz o wiatr.", img: "kamala_normal.png"},
+          { text: "Wciąż nie mogę zrozumieć, czemu to nie są banany.", img: "kamala_facepalm.png" }
+          
+        ],
+        question: {
+          text: "Co powinna przede wszystkim zawierać sałatka Kamali?",
+          answer: "BANANY",
+          imageCorrect: "kamala_disgusted.png",
+          imageWrong: "kamala_facepalm.png",
+          imageAsk: "kamala_disgusted.png",
+          scorePoint: false,
+          correctReaction: { text: "Prawda? Banan poprawia smak wszystkiego!", img: "kamala_suprised.png" },
+          wrongReaction: { text: "Czy ciebie bili po głowie jak byłeś mały?", img: "kamala_facepalm.png" }
+        }
+     },{        
+        mascot: 'kamala_disgusted.png',
+        dialog: [
+          { text: "Kolejne, trudne pytanie." },
+          { text: "Ale, zanim przejdziemy dalej..." },
+          { text: "Sporo mnie kosztuje to tłumaczenie. Odwdzięczyłbyś się jakoś, hmm?" },
+          { text: "Masz może banana?", img: "kamala_excited.png" },
+          { text: "...", img: "kamala_excited.png" },
+          { text: "...", img: "kamala_excited.png" },
+          { text: "...", img: "kamala_excited.png" },
+          { text: "Tak myślałam.", img: "kamala_angry.png" }
+        ],
+        question: {
+          text: "Kto byłby najlepszym Marszałkiem Sejmu?",
+          answer: "KAMALA",
+          imageCorrect: "kamala_disgusted.png",
+          imageWrong: "kamala_facepalm.png",
+          imageAsk: "kamala_disgusted.png",
+          scorePoint: true,
+          eggImage: "egg_air.png",
+          correctReaction: { text: "Fajny gość z ciebie!", img: "kamala_normal.png" },
+          wrongReaction: { text: "że co !?", img: "kamala_mad.png" }
+        }
+      }
+    ,{        
+        mascot: 'biden_joyful.png',
+        dialog: [
+          { text: "Ale serio tak myślisz?", img: "kamala_moved.png" },
+          { text: "No dobra. Jajko się zaświeciło, czyli czas na poszukiwania.", img: "kamala_disgusted.png" },
+          { text: "Zając ma gadkę\nZając ma bajer\nlecz nie je bananów\nZając to - frajer.", img: "kamala_disgusted.png", poetic: true },
+          { text: "Znalazłeś? Udało się?!", img: "kamala_suprised.png" },
+          { text: "Mam nadzieję, że to banan!", img: "kamala_excited.png" },
+          { text: "Dobra, spadam, bo żywe trupy nadchodzą.", img: "kamala_disgusted.png" },
+          { text: "Witajcie chłopcy, dziewczyny oraz wszyscy pomiędzy i poza nimi." },
+          { text: "To ja, Joe!" },
+          { text: "Jak tam? Trzymasz się za gadki?" },
+          { text: "A nie, czekaj... ty rozwiązujesz zagadki!", img: "biden_suprised.png" },
+          { text: "Łapiesz, nie? Hahaha!", img: "biden_laugh.png" },
+          { text: "No dobra, kupa śmiechu. Ale jestem tu, bo mam ci zadać jakieś pytania." },
+          { text: "Zacznijmy od takiego:" },
+        ],
+        question: {
+          text: "Jak się nazywa miasto, do którego nie zdążyłem na debatę?",
+          answer: "KOŃSKIE",
+          imageCorrect: "biden_joyful.png",
+          imageWrong: "biden_suprised.png",
+          imageAsk: "biden_joyful.png",
+          scorePoint: false,
+          correctReaction: { text: "Tak jest. Piękne miasto, Jadłem tam pizzę z moimi marines.", img: "biden_joyful.png" },
+          wrongReaction: { text: "Tu raczej nie byłem. Albo byłem, ale nie pamiętam. To całkiem możliwe.", img: "biden_confused.png" }
+        }
+      }
+      ,{        
+        mascot: 'biden_joyful.png',
+        dialog: [
+          { text: "a może to było gdzie indziej", img: "biden_confused.png" },
+          { text: "Nieważne. To teraz powiedz mi:" }
+        ],
+        question: {
+          text: "Jak się nazywa kandydat, który czasem jeździ samochodem, a czasem na wrotkach?",
+          answer: "NAWROCKI",
+          imageCorrect: "biden_sleep.png",
+          imageWrong: "biden_confused.png",
+          imageAsk: "biden_joyful.png",
+          scorePoint: false,
+          correctReaction: { text: "zzz...", img: "biden_sleep.png"},
+          wrongReaction: { text: "A, o co ja cię właściwie pytałem?", img: "biden_confused.png" }
+        }
+      }
+      ,{        
+        mascot: 'biden_joyful.png',
+        dialog: [
+          { text: "Aaa! Tak? Co?", img: "biden_suprised.png" },
+          { text: "Ameryka zawsze będzie stać po stronie demokracji!", img: "biden_talk.png" },
+          { text: "zaraz... nie, wróć", img: "biden_confused.png"},
+          { text: "Dobrze. Świetnie sobie radzisz chłopcze."},
+          { text: "Dam ci potem w nagrodę taką fajną czerwoną czapkę, chcesz?"},
+          { text: "Skąd ja ją mam?", img: "biden_confused.png" },
+          { text: "No dobrze. Czas na kolejne pytanie." }
+        ],
+        question: {
+          text: "Jakim systemem jest ETS w istocie swojej?",
+          answer: "PODATKOWYM",
+          imageAsk: "biden_joyful.png",
+          scorePoint: false,
+          correctReaction: { text: "zzz... z kawałkami czekolady, poproszę... zzz", img: "biden_sleepdeep.png"},
+          wrongReaction: { text: "Nie łam się! To twój czas by świecić.", img: "biden_joyful.png" }
+        }
+      }
+      ,{        
+        mascot: 'biden_joyful.png',
+        dialog: [
+          { text: "Jestem, jestem! Dobra robota." },
+          { text: "No to jeszcze jedno ode mnie." }   
+        ],
+        question: {
+          text: "Niektórzy twierdzą, że podatki powinny być...",
+          answer: "NISKIEIPROSTE",
+          imageCorrect: "biden_sleep.png",
+          imageWrong: "biden_confused.png",
+          imageAsk: "biden_joyful.png",
+          scorePoint: true,
+          eggImage: "egg_politics.png",
+          correctReaction: { text: "Kablamo!", img: "biden_yes.png"},
+          wrongReaction: { text: "Oh, fiddle stick!", img: "biden_suprised.png" }
+        }
+      }
+      ,{        
+        mascot: 'cookie_angry.png',
+        dialog: [
+          { text: "Prawdziwy z ciebie egg hunter.", img: "biden_yes.png" },
+          { text: "Hmm... przypomniało mi się: muszę zadzwonić do syna.", img: "biden_confused.png" },
+          { text: "No, nic to. Jak widzisz chłopcze, mój żywioł to polityka!", img: "biden_joyful.png" },
+          { text: "Czas więc na polityczne jaja! Hahahaha!", img: "biden_laugh.png"},
+          { text: "Na prawo - Prawica\nna lewo - Lewica\na jajko trzyma\nMłoda Lwica.", poetic: true, img: "biden_joyful.png" },
+          { text: "Znalazłeś? Powodzenia i pamiętaj: No eggs left behind!", img: "biden_joyful.png"  }, 
+          { text: "Dobra. Skończyło się babci sranie."  }, 
+          { text: "Teraz będziesz odpowiadał mi -"  },
+          { text: "Pierniczkowi."  },
+          { text: "Coś cię bawi?", img: "cookie_veryangry.png"  },
+          { text: "Tu nie ma nic śmiesznego. Zaczniemy od polityki klimatycznej."  }
+        ],
+        question: {
+          text: "Przypomnij moje słynne hasło walki z OZE",
+          answer: "COMAPIERNIKDOWIATRAKA",
+          imageCorrect: "biden_sleep.png",
+          imageWrong: "biden_confused.png",
+          imageAsk: "cookie_angry.png",
+          scorePoint: false,
+          correctReaction: { text: "Tak jest! To było najlepsze hasło w historii wyborów.", img: "cookie_proud.png"},
+          wrongReaction: { text: "Przyznaj się. Jesteś jednym z tych klimatystów!", img: "cookie_veryangry.png" }
+        }
+      }
+      ,{        
+        mascot: 'cookie_angry.png',
+        dialog: [
+          { text: "Ale spójrzmy w przyszłość." },
+          { text: "Wszak walka z klimatem trwa." },
+          { text: "Mam nowe hasło."},
+          { text: "Bardzo chwytliwe.", img: "cookie_stering.png"},
+          { text: "Jak zawsze!", img: "cookie_proud.png"},
+          { text: "Dokończ je. Łatwo wpada w ucho."  }
+        ],
+        question: {
+          text: "Wichurami, pożarami i suszami klimatyści straszą cię? Piernik, też co dla nich ma: cyklon",
+          answer: "B",
+          imageCorrect: "biden_sleep.png",
+          imageWrong: "biden_confused.png",
+          imageAsk: "cookie_angry.png",
+          scorePoint: false,
+          correctReaction: { text: "Krótko ze świrami!", img: "cookie_happy.png"},
+          wrongReaction: { text: "Miałeś zgadnąć jedną literę! Jedną! Owszem tworzę armię tępych sług, ale nie aż tak tępych.", img: "cookie_veryangry.png" }
+        }
+      }
+      ,{        
+        mascot: 'cookie_angry.png',
+        dialog: [
+          { text: "Wiesz, mam takiego jednego idola.", img: "cookie_thinking.png" },
+          { text: "Czytałem o nim sporo.", img: "cookie_thinking.png" },
+          { text: "Nazywa się Zbazylew.", img: "cookie_thinking.png"},
+          { text: "Hayetan Zbazylew. Mocny gość.", img: "cookie_strong.png"},
+          { text: "Nie cackał się z wrogami.", img: "cookie_proud.png"},
+          { text: "Odporny na krytykę, ale nie dający sobie w kaszę dmuchać.", img: "cookie_proud.png"},
+          { text: "Tak samo jak ja", img: "cookie_stering.png"},
+          { text: "Powinieneś znać jego dzieje. Dlatego pytanie będzie takie:"  }
+        ],
+        question: {
+          text: "Według słynnego cytatu Wielkiego Zbazylewa, na którym opiera się całe państwo, kto nie ma prawa głosu?",
+          answer: "ZDRAJCY",
+          imageAsk: "cookie_angry.png",
+          scorePoint: false,
+          correctReaction: { text: "Właśnie! Czyli wszyscy. którzy odebrali mi władzę", img: "cookie_crying.png"},
+          wrongReaction: { text: "No co się gapisz? Widać musisz zapoznać się z dziejami Hayetana. Do roboty!", img: "cookie_veryangry.png" }
+        }
+      }
+      ,{        
+        mascot: 'cookie_crying.png',
+        dialog: [
+          { text: "I teraz jestem tu i gram w jakieś durne krzyzówki." },
+          { text: "Zrobiłeś mi przykrość!" },
+          { text: "Ja chcę znowu rządzić!", img: "cookie_cryingmore.png"},
+          { text: "Wszystkich do wora!", img: "cookie_cryingmore.png"}
+        ],
+        question: {
+          text: "Wór do...",
+          answer: "JEZIORA",
+          imageAsk: "cookie_cryingmore.png",
+          eggImage: "egg_water.png",
+          scorePoint: true,
+          correctReaction: { text: "No dobra! Już mi lepiej.", img: "cookie_crying.png"},
+          wrongReaction: { text: "Nic nie rozumiesz! Nikt mnie nie rozumie!", img: "cookie_cryingmore.png" }
+        }
+      }
+      ,{        
+        mascot: 'cookie_angry.png',
+        dialog: [
+          { text: "Jajko się pojawiło. Ciekawe, czemu żywioł wody...", img: "cookie_thinking.png"},
+          { text: "No nic. Kończę zatem i wysyłam cię na poszukiwania."},
+          { text: "Karo, kiery,\ntrefle, piki.\nZając lubi\nczyste ręczniki.", poetic: true },
+          { text: "Jedyna z tego zaleta taka, ze przynajmniej każą ci szukać jajek, a nie pierników.", img: "cookie_stering.png"},
+          { text: "Wiesz... polubiłem cię nawet.", img: "cookie_happy.png"},
+          { text: "Wyglądasz na aryjczyka.", img: "cookie_proud.png"},
+          { text: "Mniam!", img: "alf_eating.png"},
+          { text: "Dziwne... jak on się uchował tak długo po świętach?", img: "alf_confused.png"},
+          { text: "Chyba się starzeję", img: "alf_disgusted.png"},
+          { text: "Ale ja nie po to tu jestem żeby się żalić. Przyszedłem zadać ci parę pytań.", img: "alf_happy.png"},
+          { text: "Na mój ulubiony temat.", img: "alf_happy.png"},
+          { text: "Jedzenie!", img: "alf_happy.png"}
+          
+        ],
+        question: {
+          text: "Czym najlepiej przełożyć bagietkę?",
+          answer: "KOTEM",
+          imageAsk: "alf_happy.png",
+          scorePoint: false,
+          correctReaction: { text: "Wreszcie ktoś z wysublimowanym gustem!", img: "alf_happy.png"},
+          wrongReaction: { text: "Wszystko nadaje się do bagietki, ale wierz mi, są lepsze opcje.", img: "alf_ok.png" }
+        }
+      }
+      ,{        
+        mascot: 'alf_happy.png',
+        dialog: [
+          { text: "Alf ?!", img: "willie_angry.png"},
+          { text: "Tak, wiem! Zasady, zasady. Wasze ziemskie zasady.", img: "alf_angry.png" },
+          { text: "Nie wszystkim one pasują. Rozmawiałem z Ufoksenem i on ma na to swój pogląd.", img: "alf_angry.png"},
+          { text: "Na marginesie... tak się składa, że bliższy mojemu.", img: "alf_ok.png"},
+          { text: "Więc nadejdzie taki dzień, że przestaniemy być w opozycji, Williamie.", img: "alf_happy.png"},
+          { text: "Zaraz, Willie ?! Co tu robi Willie?", img: "alf_confused.png"},
+          {text: "Zostawmy to. Wybacz te drobne rodzinne sprzeczki."},
+          {text: "Czas na kolejne pytanie."},
+          {text: "Wiesz, że nie jestem jedynym głodomorem na tej planecie, prawda?", img: "alf_disgusted.png"},
+          {text: "Czytałeś może Kroniki Miasta Hajduszo?", img:"alf_ok.png" },
+          {text: "Jeśli tak, to..."}
+        ],
+        question: {
+          text: "Wiesz kto tam królował apetytem?",
+          answer: "ZSUZSANNA",
+          imageAsk: "alf_happy.png",
+          scorePoint: false,
+          correctReaction: { text: "Tak. To moja ulubiona postać.", img: "alf_happy.png"},
+          wrongReaction: { text: "Pamiętam kogoś, kto bardziej skakał na widok jedzenia!", img: "alf_ok.png" }
+        }
+      }
+      ,{        
+        mascot: 'alf_happy.png',
+        dialog: [
+          { text: "Miło się czyta o takich ludziach."},
+          { text: "Którzy wiedzą co dobre.", img: "alf_ok.png" },
+          { text: "Ale wszystko co dobre, musi gdzieś trafiać, prawda?" },
+          { text: "Ja mam to szczęście, bo natura obdażyła mnie..."}
+        ],
+        question: {
+          text: "No właśnie, iloma żołądkami?",
+          answer: "7",
+          imageAsk: "alf_confused.png",
+          scorePoint: true,
+          eggImage: "egg_earth.png",
+          correctReaction: { text: "Tak. Piękna liczba, czyż nie?", img: "alf_happy.png"},
+          wrongReaction: { text: "Chyba mylisz mnie z innym kosmitą.", img: "alf_angry.png" }
+        }
+      }
+      ,{        
+        mascot: 'hippo_nice.png',
+        dialog: [
+          { text: "Rozumiesz, że z tą liczbą żółądków, raczej twardo stąpam po ziemi.", img: "alf_happy.png"},
+          { text: "Zatem czas, aby i ciebie porwał żywioł ziemi", img: "alf_ok.png"},
+          { text: "Jajko ziemi,\njajko stłuczone,\nskorupka krucha\nkolejną postać kryje\nrzeż... ", poetic: true, img: "alf_happy.png"},
+          { text: "I co? Znalazłeś?", img: "alf_happy.png"},
+          { text: "Nie wygląda mi to na coś do jedzenia.", img: "alf_disgusted.png"},
+          { text: "Ale, zawsze można spróbować. Zacznij od polizania.", img: "alf_ok.png"},
+          { text: "O nie! Ktoś puka.", img: "alf_angry.png"},
+          { text: "Dobra, znikam zatem. Zobaczę co Kate szykuje na święta", img: "alf_happy.png"},
+          { text: "Cześć!!! Jak to miło cię widzieć."},
+          { text: "Nie przeszkadzam?"},
+          { text: "O jej! Jak pięknie sobie radzisz z jajeczkami.", img: "hippo_suprised.png"},
+          { text: "Już tylko jednego ci brakuje.", img: "hippo_suprised.png"},
+          { text: "Gratulacje! Dawaj przytulaska.", img: "hippo_hug.png"},
+          { text: "Pomogę ci z ostatnim. Na pewno sobie poradzimy."},
+          { text: "Nie martw się", img: "hippo_hug.png"}
+
+         
+        ],
+        question: {
+          text: "Powiedz mi najpierw: co jest w życiu najważniejsze?",
+          answer: "MIŁOŚĆ",
+          imageAsk: "hippo_dreamy.png",
+          scorePoint: false,
+          correctReaction: { text: "No pewnie! Cóżby innego?!", img: "hippo_excited.png"},
+          wrongReaction: { text: "Tak uważasz? No nie wiem.", img: "hippo_suprised.png" }
+        }
+      }
+      ,{        
+        mascot: 'hippo_nice.png',
+        dialog: [
+          { text: "Mam nadzieję, że się nie stresujesz."},
+          { text: "Tak, troszkę?", img: "hippo_sad.png"},
+          { text: "Ojejku. To może dam ci małą nagrodę.", img: "hippo_sad.png"},
+          { text: "Nie! Jeszcze za wcześnie na jajeczko."},
+          { text: "Buziaczka!!!", img: "hippo_kiss.png"},
+          { text: "Chryste!", img: "kamala_facepalm.png"},
+          { text: "Nie męcz go zboczeńcu tylko daj mu jajko!", img: "cookie_angry.png"},
+          { text: "Pan pierniczek jak zwykle się denerwuje.", img: "hippo_sad.png" },
+          { text: "Niepotrzebnie. Czasem trzeba pocieszyć człowieka w potrzebie.", img:"hippo_dreamy.png"},
+          { text: "Skoro już rozgrzewkę mamy za sobą, to może teraz takie pytanie:"}
+
+         
+        ],
+        question: {
+          text: "Jakiego koloru marshmallowy najfajniej się smaży na ognisku?",
+          answer: "RÓŻOWE",
+          imageAsk: "hippo_nice.png",
+          scorePoint: true,
+          eggImage: "egg_fire.png",
+          correctReaction: { text: "Prawda? Wtedy jest - ogień!", img: "hippo_excited.png"},
+          wrongReaction: { text: "Też piękny kolor, ale pomyśl jeszcze troszkę.", img: "hippo_suprised.png" }
+        }
+      }
+      ,{        
+        mascot: 'hippo_nice.png',
+        dialog: [
+          { text: "A jeszcze jak masz do tego towarzystwo przyjaciół", img: "hippo_dreamy.png"},
+          { text: "Wszyscy tańczą i śpiewają", img: "hippo_dreamy.png"},
+          { text: "Geje posypują patyki brokatem, żeby mieniły się w słońcu", img: "hippo_dreamy.png"},
+          { text: "Zabijcie mnie.", img: "cookie_facepalm.png"},
+          { text: "Debilu! Masz mu opisać żywioł ognia, a nie jakieś wygibasy przy ognisku.", img: "cookie_angry.png"},
+          { text: "Weź się w garść! Pokaż jaja!", img: "cookie_stering.png"},
+          { text: "Dobrze, dobrze, panie pierniczku!"},
+          { text: "Proszę się nie denerwować, już szukamy jajeczka."},
+          { text: "Buziaczka na zgodę?", img: "hippo_kiss.png"},
+          { text: "...", img: "cookie_veryangry.png"},
+          { text: "...", img: "hippo_sad.png" },
+          { text: "?", img: "hippo_sad.png" },
+          { text: "...", img: "hippo_sad.png" },
+          { text: "No dobrze. Czyli ogień?", img:"hippo_suprised.png"},
+          { text: "Wiem! Zrobimy to romantycznie.", img: "hippo_excited.png"},
+          { text: "Ja jebię! Jak grochem o ścianę.", img: "cookie_facepalm.png"},
+          { text: "Zgaszonych świec\nsmutne istnienie\nby radość odzyskać\npotrzebne płomienie.", poetic: true, img: "hippo_dreamy.png"},
+          { text: "Udało się! Zdobyłeś wszystkie jajeczka!", img: "hippo_excited.png"},
+          { text: "Wszyscy, życzymy ci cudownych, wspaniałych i Wesołych Świąt!", img: "bye.png"}
+         
+        ]
+        
+      }
+    ];
+
+    function playBeep() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.02);
+    }
+
+    function typeText(text, callback, extraClass = '') {
+  const bubble = document.getElementById('speech-bubble');
+  bubble.className = extraClass;
+  bubble.innerHTML = '';
+  let index = 0;
+  const interval = setInterval(() => {
+    const char = text.charAt(index);
+    if (char === '\n') {
+      bubble.innerHTML += '<br>';
+    } else {
+      bubble.innerHTML += char;
+      if (char !== ' ') playBeep();
+    }
+    index++;
+    if (index === text.length) {
+      clearInterval(interval);
+      if (callback) callback();
+    }
+  }, 20);
+}
+
+const eggSound = new Audio('egg-sound.mp3');
+eggSound.preload = 'auto';
+function updateScoreDisplay() {
+  const container = document.getElementById('score-container');
+  container.innerHTML = '';
+
+  for (let i = 0; i < 5; i++) {
+    const img = document.createElement('img');
+    if (i < collectedEggs.length) {
+      img.src = collectedEggs[i];
+      img.className = 'egg-earned';
+    } else {
+      img.src = 'egg_grey.png';
+      img.className = 'egg-empty';
+    }
+    container.appendChild(img);
+  }
+}
+
+    function renderQuestion() {
+      const round = rounds[currentStep];
+      const container = document.getElementById('input-container');
+      container.style.display = 'flex';
+      container.innerHTML = '';
+      document.getElementById('mascot-img').src = round.question.imageAsk;
+      typeText(round.question.text);
+      for (let i = 0; i < round.question.answer.length; i++) {
+        const input = document.createElement('input');
+        input.setAttribute('maxlength', 1);
+        input.className = 'letter-input';
+        input.addEventListener('input', e => {
+          const next = e.target.nextElementSibling;
+          if (next && e.target.value) next.focus();
+        });
+        container.appendChild(input);
+      }
+      document.getElementById('next-button').style.display = 'inline-block';
+      document.getElementById('next-button').textContent = 'Odpowiedz';
+      isAnswering = true;
+    }
+
+    function submitAnswer() {
+      const round = rounds[currentStep];
+      const inputs = document.querySelectorAll('.letter-input');
+      let guess = '';
+      inputs.forEach(input => guess += input.value.toUpperCase());
+
+      if (guess === round.question.answer) {
+        if (round.question.scorePoint) {
+            const previousScore = score;
+            score = Math.min(5, score + 1);
+            // Dodaj do kolekcji zdobyte jajko
+            collectedEggs.push(round.question.eggImage || 'egg_color.png'); // ← KLUCZOWA LINIA
+            if (score > previousScore) {
+            eggSound.currentTime = 0;
+            eggSound.play();
+            }
+            updateScoreDisplay();
+        }
+        typeText(round.question.correctReaction.text);
+        document.getElementById('mascot-img').src = round.question.correctReaction.img;
+        document.getElementById('input-container').style.display = 'none';
+        document.getElementById('next-button').textContent = 'Dalej';
+        isAnswering = false;
+        dialogIndex = 0;
+      } else {
+        typeText(round.question.wrongReaction.text);
+  document.getElementById('mascot-img').src = round.question.wrongReaction.img;
+  document.getElementById('next-button').textContent = 'Odpowiedz';
+
+  // Zablokuj edycję i wyszarz
+  inputs.forEach(input => input.classList.add('disabled-input'));
+
+  setTimeout(() => {
+    // Odblokuj i odśwież pytanie
+    inputs.forEach(input => input.classList.remove('disabled-input'));
+    renderQuestion();
+  }, 4000);
+      }
+    }
+
+    function showNextDialog() {
+  const round = rounds[currentStep];
+  
+  // Jeśli zakończyliśmy ostatni dialog i nie ma pytania — KONIEC GRY
+  if (dialogIndex >= round.dialog.length) {
+    if (!round.question) {
+      typeText("To już koniec gry! Do zobaczenia w sejmie.");
+      document.getElementById('input-container').style.display = 'none';
+      document.getElementById('next-button').style.display = 'none';
+      return;
+    } else {
+      renderQuestion();
+      return;
+    }
+  }
+
+  // Normalne wyświetlanie dialogu
+  const line = round.dialog[dialogIndex];
+  const isPoetic = line.poetic ? 'poetic' : '';
+  typeText(line.text, null, isPoetic);
+  document.getElementById('mascot-img').src = line.img || round.mascot;
+  dialogIndex++;
+  document.getElementById('next-button').style.display = 'inline-block';
+  document.getElementById('next-button').textContent = 'Dalej';
+}
+
+
+function handleNextButton() {
+  if (isAnswering) {
+    submitAnswer();
+  } else {
+    const round = rounds[currentStep];
+
+   
+
+    if (dialogIndex === 0 && (!round.question || document.getElementById('speech-bubble').textContent.trim() === (round.question?.correctReaction?.text || ''))) {
+  if (currentStep + 1 < rounds.length) {
+    currentStep++;
+    dialogIndex = 0;
+    showNextDialog();
+  } else {
+    typeText("To już koniec gry! Do zobaczenia za rok.");
+    document.getElementById('input-container').style.display = 'none';
+    document.getElementById('next-button').style.display = 'none';
+  }
+} else {
+  showNextDialog();
+}
+
+  }
+}
+
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleNextButton();
+      }
+    });
+
+    updateScoreDisplay();
+    showNextDialog();
+  </script>
+</body>
+</html>
