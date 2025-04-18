@@ -24,7 +24,7 @@
     }
     .poetic {
   font-family: 'Dancing Script', cursive;
-  font-size: 40px;
+  font-size: 50px;
   line-height: 1.4;
   color: #444;
 }
@@ -160,6 +160,10 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+#next-button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
 }
   </style>
 </head>
@@ -380,7 +384,7 @@
           { text: "Dokończ je. Łatwo wpada w ucho."  }
         ],
         question: {
-          text: "Wichurami, pożarami i suszami klimatyści straszą cię? Piernik, też co dla nich ma: cyklon",
+          text: "Wichurami, pożarami i suszami straszą cię? Piernik, też coś dla nich ma: cyklon",
           answer: "B",
           imageCorrect: "biden_sleep.png",
           imageWrong: "biden_confused.png",
@@ -399,7 +403,7 @@
           { text: "Hayetan Zbazylew. Mocny gość.", img: "cookie_strong.png"},
           { text: "Nie cackał się z wrogami.", img: "cookie_proud.png"},
           { text: "Odporny na krytykę, ale nie dający sobie w kaszę dmuchać.", img: "cookie_proud.png"},
-          { text: "Tak samo jak ja", img: "cookie_stering.png"},
+          { text: "Tak samo jak ja.", img: "cookie_stering.png"},
           { text: "Powinieneś znać jego dzieje. Dlatego pytanie będzie takie:"  }
         ],
         question: {
@@ -435,7 +439,7 @@
           { text: "Jajko się pojawiło. Ciekawe, czemu żywioł wody...", img: "cookie_thinking.png"},
           { text: "No nic. Kończę zatem i wysyłam cię na poszukiwania."},
           { text: "Karo, kiery,\ntrefle, piki.\nZając lubi\nczyste ręczniki.", poetic: true },
-          { text: "Jedyna z tego zaleta taka, ze przynajmniej każą ci szukać jajek, a nie pierników.", img: "cookie_stering.png"},
+          { text: "Jedyna z tego zaleta, ze przynajmniej każą ci szukać jajek, a nie pierników.", img: "cookie_stering.png"},
           { text: "Wiesz... polubiłem cię nawet.", img: "cookie_happy.png"},
           { text: "Wyglądasz na aryjczyka.", img: "cookie_proud.png"},
           { text: "Mniam!", img: "alf_eating.png"},
@@ -595,9 +599,16 @@
 
     function typeText(text, callback, extraClass = '') {
   const bubble = document.getElementById('speech-bubble');
+  const nextButton = document.getElementById('next-button');
   bubble.className = extraClass;
   bubble.innerHTML = '';
   let index = 0;
+
+  // Zablokuj przycisk na czas pisania
+  nextButton.disabled = true;
+  nextButton.style.opacity = 0.5;
+  nextButton.style.pointerEvents = 'none';
+
   const interval = setInterval(() => {
     const char = text.charAt(index);
     if (char === '\n') {
@@ -609,10 +620,17 @@
     index++;
     if (index === text.length) {
       clearInterval(interval);
+
+      // Odblokuj przycisk po zakończeniu pisania
+      nextButton.disabled = false;
+      nextButton.style.opacity = 1;
+      nextButton.style.pointerEvents = 'auto';
+
       if (callback) callback();
     }
   }, 20);
 }
+
 
 const eggSound = new Audio('egg-sound.mp3');
 eggSound.preload = 'auto';
@@ -747,12 +765,12 @@ function handleNextButton() {
   }
 }
 
-    document.addEventListener('keydown', e => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        handleNextButton();
-      }
-    });
+    // document.addEventListener('keydown', e => {
+    //   if (e.code === 'Space') {
+    //     e.preventDefault();
+    //     handleNextButton();
+    //   }
+    // });
 
     updateScoreDisplay();
     showNextDialog();
