@@ -189,6 +189,7 @@
     let collectedEggs = []; // 🥚 ← tu będziemy trzymać nazwy zdobytych jajek
     let currentStep = 0;
     let isAnswering = false;
+    let isLocked = false;
     let dialogIndex = 0;
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -657,7 +658,9 @@ function updateScoreDisplay() {
       container.style.display = 'flex';
       container.innerHTML = '';
       document.getElementById('mascot-img').src = round.question.imageAsk;
-      typeText(round.question.text);
+      typeText(round.question.text, () => {
+  isLocked = false; // 🔓 Odblokowujemy dopiero po zakończeniu animacji pytania
+});
       for (let i = 0; i < round.question.answer.length; i++) {
         const input = document.createElement('input');
         input.setAttribute('maxlength', 1);
@@ -671,9 +674,11 @@ function updateScoreDisplay() {
       document.getElementById('next-button').style.display = 'inline-block';
       document.getElementById('next-button').textContent = 'Odpowiedz';
       isAnswering = true;
+
     }
 
     function submitAnswer() {
+      if (isLocked) return; // ⛔️ blokuj, jeśli czekamy
       const round = rounds[currentStep];
       const inputs = document.querySelectorAll('.letter-input');
       let guess = '';
@@ -705,6 +710,9 @@ function updateScoreDisplay() {
   // Zablokuj edycję i wyszarz
   inputs.forEach(input => input.classList.add('disabled-input'));
 
+  // ⛔️ Zablokuj możliwość odpowiedzi na chwilę
+  isLocked = true;
+  document.getElementById('next-button').style.display = 'none'; // ← ukryj przycisk
   setTimeout(() => {
     // Odblokuj i odśwież pytanie
     inputs.forEach(input => input.classList.remove('disabled-input'));
